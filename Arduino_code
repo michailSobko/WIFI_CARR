@@ -6,7 +6,7 @@
 
 // настройки соединения
 #define REMOTEXY_WIFI_SSID "WIFI_CAR"
-#define REMOTEXY_WIFI_PASSWORD "11223344"
+#define REMOTEXY_WIFI_PASSWORD ""
 #define REMOTEXY_SERVER_PORT 6377
 
 
@@ -67,14 +67,14 @@ struct {
 
 } RemoteXY;
 //Пины для регистра
-#define   dataPin        D2
+#define   dataPin        D4
 #define   latchPin       D3
-#define   clockPin       D4
+#define   clockPin       D2
 //Пины подключения моторов
-#define   UP_LEFT_0      D6//Левый мотор
-#define   UP_LEFT_1      D5
-#define   UP_RIGHT_0     D9//Правый мотор
-#define   UP_RIGHT_1     D8
+#define   UP_LEFT_0      D8//Левый мотор
+#define   UP_LEFT_1      D7
+#define   UP_RIGHT_0     D5//Правый мотор
+#define   UP_RIGHT_1     D6
 //Выходы регистра
 #define   LED_TURN_L     1//1 
 #define   LED_TURN_R     2//2 элемент
@@ -105,24 +105,19 @@ void loop()
   ArduinoOTA.handle(); //для загрузки по wifi
   RemoteXY_Handler ();//для приложения RemoutXY
   Shifter.clearRegisters();//очищаем весь регитр
-  int SPD = 50 + RemoteXY.slider_1 / 20; //скорость двигателя
   //В х и у записываем положение джостика
   y = RemoteXY.joystick_1_y;  
   x = RemoteXY.joystick_1_x;
-  
+    int SPD = 10+RemoteXY.slider_1 / 30; //скорость двигателя
   TURN();     //управление светом поворотников
   LED();      //управление дневным и дальним светом ,светом заднего хода
   STOP();     //выкл моторов
   WARRING();  //управление аварийным светом
   charge();   //вывод заряда акумулятора
-  MOTORS();   //управление моторами
-
-}
-//
-// Функция управления моторами
-//
-void MOTORS(){
-    if (y > 100) y = 100; if (y < -100) y = -100; if (x > 100) x = 100; if (x < -100) x = -100;
+ //
+ //управление моторами
+int bb =0.5;
+ if (y > 100) y = 100; if (y < -100) y = -100; if (x > 100) x = 100; if (x < -100) x = -100;
 //
   if (y > 20 && x > -20 && x < 20) { //тупо прямо
     digitalWrite(UP_LEFT_0, 0);    analogWrite(UP_LEFT_1, y * SPD);
@@ -136,44 +131,46 @@ void MOTORS(){
   }
   else if (y > 20 && x > 20) { //вперед и вправо
     digitalWrite(UP_LEFT_0, 0);     analogWrite(UP_LEFT_1, y * SPD);
-    digitalWrite(UP_RIGHT_0, 0);    analogWrite(UP_RIGHT_1, y * SPD - 0.5 * x * SPD);
+    digitalWrite(UP_RIGHT_0, 0);    analogWrite(UP_RIGHT_1, bb*y * SPD);
 
   }
 
   else if (y > 20 && x < -20) { //вперед и на лево
 
-    digitalWrite(UP_LEFT_0, 0);     analogWrite(UP_LEFT_1, y * SPD - 0.5 * x * SPD);
+    digitalWrite(UP_LEFT_0, 0);     analogWrite(UP_LEFT_1, bb*y*SPD);
     digitalWrite(UP_RIGHT_0, 0);    analogWrite(UP_RIGHT_1, y * SPD);
 
   }
 
   else if (y < -20 && x > 20) { //назад вправо
 
-    digitalWrite(UP_LEFT_0, 0);     analogWrite(UP_LEFT_1, (-y)*SPD);
-    digitalWrite(UP_RIGHT_0, 0);    analogWrite(UP_RIGHT_1, (-y)*SPD + 0.5 * x * SPD);
+    digitalWrite(UP_LEFT_0, 0);     analogWrite(UP_LEFT_1, bb*(-y)*SPD);
+    digitalWrite(UP_RIGHT_0, 0);    analogWrite(UP_RIGHT_1, (-y)*SPD);
 
   }
 
   else if (y < -20 && x < -20) { //назад на лево
 
-    digitalWrite(UP_LEFT_1, 0);    analogWrite(UP_LEFT_0, -y * SPD - 0.5 * x * SPD);
-    digitalWrite (UP_RIGHT_0, 0);  analogWrite(UP_RIGHT_1, -y * SPD);
+    digitalWrite(UP_LEFT_1, 0);    analogWrite(UP_LEFT_0, -y * SPD );
+    digitalWrite (UP_RIGHT_0, 0);  analogWrite(UP_RIGHT_1, -y * SPD*bb);
 
   }
 
-  else if (y > 20 && y < -20 && x < -20) { //Поворот влевую сторону
+  else if (y < 20 && y > -20 && x < -20) { //Поворот влевую сторону
 
     digitalWrite(UP_LEFT_1, 0);    analogWrite(UP_LEFT_0, -x * SPD);
     digitalWrite(UP_RIGHT_0, 0);   analogWrite(UP_RIGHT_1, -x * SPD);
   }
 
 
-  else if (y > 20 && y < -20 && x > 20) { //поворот в правую сторону
+  else if (y < 20 && y > -20 && x > 20) { //поворот в правую сторону
 
     digitalWrite(UP_LEFT_0, 0);    analogWrite(UP_LEFT_1, x * SPD);
     digitalWrite(UP_RIGHT_1, 0);   analogWrite(UP_RIGHT_0, x * SPD);
   }
-  }
+ 
+
+}
 //
 //    Осуществляет остановку всех моторов и включение стоп сигнала
 //  
@@ -266,7 +263,7 @@ void charge()
   if (a - b > 3000)
 
   {
-    float voltage = k * 4.42f / 1024 * analogRead(A5);
+    float voltage = k * 4.42f / 1024 * analogRead(A0);
     b = millis()         ;
     chargeLevel_procents = (voltage - 7.41) * 100;
     if (chargeLevel_procents < 0 || chargeLevel_procents > 100)
